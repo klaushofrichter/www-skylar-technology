@@ -22,10 +22,7 @@ cluster-wide context).
 
 ## Cluster-side manifests
 
-Not yet created. `www-klaushofrichter`'s equivalent lives in
-`klaushofrichter/kube-setup`: `manifests/www/` (the Knative Service +
-DomainMapping) and `manifests/www-klaushofrichter-runner/` (a dedicated
-self-hosted runner). This repo needs the same treatment
-(`manifests/skylar/` + `manifests/skylar-runner/`, roughly) before
-`deploy-production.yml` can actually run — that's deliberately left as a
-follow-up.
+Live in `klaushofrichter/kube-setup`: `manifests/www-skylar-technology/`
+(the Knative Service + DomainMapping for `www.skylar.technology`) and
+`manifests/www-skylar-technology-runner/` (this repo's dedicated
+self-hosted runner — its own namespace/ServiceAccount/RBAC).
