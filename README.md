@@ -31,9 +31,6 @@ Builds and pushes to `ghcr.io/klaushofrichter/www-skylar-technology` via
 GitHub Actions on push to `main`. Deploying to production happens on merge
 to the `production` branch, via an in-cluster self-hosted GitHub Actions
 runner — see `klaushofrichter/kube-setup`'s
-`docs/self-hosted-runner-cicd-pattern.md` for the full design.
-
-As of this repo's creation, the cluster-side manifests (namespace, Knative
-Service, DomainMapping, and a dedicated self-hosted runner) have **not**
-been added to `kube-setup` yet, so `deploy-production.yml` will not have a
-runner to pick it up until that follow-up work is done.
+`docs/self-hosted-runner-cicd-pattern.md` for the full design, and its
+`manifests/www-skylar-technology/` and `manifests/www-skylar-technology-runner/`
+for this service's cluster manifests.
