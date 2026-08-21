@@ -10,5 +10,6 @@ describe('GET /', () => {
     expect(response.status).toBe(200);
     expect(response.type).toBe('text/html');
     expect(response.text).toContain('Welcome to Skylar Technology LLC');
+    expect(response.text).toContain('/assets/skylar-256x256.png');
   });
 });
