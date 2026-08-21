@@ -14,8 +14,11 @@ Klaus Hofrichter's personal homepage.
 
 ## API
 
-- `GET /` — the homepage: "Welcome to Skylar Technology LLC".
+- `GET /` — the homepage: the Skylar Technology logo above "Welcome to
+  Skylar Technology LLC".
 - `GET /health` — returns `{"status": "ok", "service": "www-skylar-technology"}`
+- `/assets/*` — static asset serving; `assets/skylar-256x256.png` is used
+  both as the page's favicon and the logo shown on the homepage.
 
 ## Development
 
