@@ -32,7 +32,8 @@ export const availability =
   'All services are offered remotely, anywhere in US time zones, with the option for on-site visits when appropriate.';
 
 export const links = [
-  { label: 'LinkedIn', url: 'https://www.linkedin.com/in/klaushofrichter' },
+  { label: "Klaus' LinkedIn", url: 'https://www.linkedin.com/in/klaushofrichter' },
+  { label: 'Company LinkedIn', url: 'https://www.linkedin.com/company/skylar-technology-llc' },
   { label: 'GitHub', url: 'https://github.com/klaushofrichter' },
   { label: 'Personal page', url: 'https://klaushofrichter.net' },
 ];
