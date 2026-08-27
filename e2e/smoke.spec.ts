@@ -10,5 +10,8 @@ test('home page loads with the welcome message', async ({ page }) => {
 test('/health reports ok', async ({ request }) => {
   const response = await request.get('/health');
   expect(response.status()).toBe(200);
-  expect(await response.json()).toEqual({ status: 'ok', service: 'www-skylar-technology' });
+  const body = await response.json();
+  expect(body.status).toBe('ok');
+  expect(body.service).toBe('www-skylar-technology');
+  expect(typeof body.version).toBe('string');
 });
