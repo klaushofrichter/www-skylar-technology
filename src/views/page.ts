@@ -1,4 +1,5 @@
 import { availability, bio, contact, engagements, links, services } from '../content';
+import { appVersion } from '../version';
 
 export function renderPage(): string {
   const serviceCards = services
@@ -195,7 +196,7 @@ export function renderPage(): string {
       <div class="links">${linkItems}</div>
     </section>
   </main>
-  <footer>Skylar Technology LLC &middot; a registered LLC in the State of Texas</footer>
+  <footer>Skylar Technology LLC &middot; a registered LLC in the State of Texas &middot; v${appVersion()}</footer>
 </body>
 </html>
 `;
