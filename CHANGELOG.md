@@ -13,6 +13,5 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Automatic calendar-versioned releases on every deploy to `production`,
-  with the version shown in the page footer and returned by `/health`.
-- Base image upgraded to Node 24.
+- Added Terms of Service (`/terms`) and Privacy Policy (`/privacy`) pages,
+  linked from the site footer.
