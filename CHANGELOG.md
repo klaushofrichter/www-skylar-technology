@@ -15,3 +15,6 @@ this file is where notes are written *before* a release, not an archive of them.
 
 - Added Open Graph (`og:*`) and Twitter Card meta tags, including `og:image`,
   to every page.
+- Cleared the remaining PageSpeed Insights diagnostics: gzip the HTML responses,
+  serve `/assets` with a one-year immutable cache, offer the logo as a
+  right-sized WebP with a PNG fallback, and stop sending `X-Powered-By`.

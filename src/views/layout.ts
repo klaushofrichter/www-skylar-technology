@@ -63,10 +63,14 @@ export function pageShell(title: string, bodyHtml: string, meta: PageMeta): stri
       text-align: center;
       margin-bottom: 3.5rem;
     }
+    header.hero picture {
+      display: block;
+      margin-bottom: 1.25rem;
+    }
     header.hero img {
       width: 96px;
       height: 96px;
-      margin-bottom: 1.25rem;
+      display: block;
     }
     h1 {
       font-size: 1.9rem;
