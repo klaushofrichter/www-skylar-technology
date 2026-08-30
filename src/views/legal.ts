@@ -68,7 +68,10 @@ export function renderTermsPage(): string {
       <a class="contact-email" href="mailto:${contact.email}">${contact.email}</a>.</p>
     </section>`;
 
-  return pageShell('Terms of Service — Skylar Technology LLC', body);
+  return pageShell('Terms of Service — Skylar Technology LLC', body, {
+    description: 'Terms of Service for Skylar Technology LLC.',
+    path: '/terms',
+  });
 }
 
 export function renderPrivacyPage(): string {
@@ -134,5 +137,8 @@ export function renderPrivacyPage(): string {
       <a class="contact-email" href="mailto:${contact.email}">${contact.email}</a>.</p>
     </section>`;
 
-  return pageShell('Privacy Policy — Skylar Technology LLC', body);
+  return pageShell('Privacy Policy — Skylar Technology LLC', body, {
+    description: 'Privacy Policy for Skylar Technology LLC.',
+    path: '/privacy',
+  });
 }

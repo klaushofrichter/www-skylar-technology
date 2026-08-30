@@ -1,3 +1,5 @@
+export const siteUrl = 'https://www.skylar.technology';
+
 export const contact = {
   email: 'klaus@skylar.technology',
 };

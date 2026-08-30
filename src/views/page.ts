@@ -55,5 +55,8 @@ export function renderPage(): string {
       <div class="links">${linkItems}</div>
     </section>`;
 
-  return pageShell('Skylar Technology LLC', body);
+  return pageShell('Skylar Technology LLC', body, {
+    description: 'AI-native software engineering leadership &amp; transformation.',
+    path: '/',
+  });
 }
