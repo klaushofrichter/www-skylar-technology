@@ -7,6 +7,18 @@ test('home page loads with the welcome message', async ({ page }) => {
   await expect(page.locator('img[alt="Skylar Technology LLC logo"]')).toBeVisible();
 });
 
+test('home page exposes Open Graph tags', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    'content',
+    'https://www.skylar.technology/assets/skylar-256x256.png'
+  );
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+    'content',
+    'Skylar Technology LLC'
+  );
+});
+
 test('footer links to the Terms of Service and Privacy Policy pages', async ({ page }) => {
   await page.goto('/');
   await page.click('footer a[href="/terms"]');

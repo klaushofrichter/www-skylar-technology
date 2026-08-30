@@ -13,5 +13,5 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Added Terms of Service (`/terms`) and Privacy Policy (`/privacy`) pages,
-  linked from the site footer.
+- Added Open Graph (`og:*`) and Twitter Card meta tags, including `og:image`,
+  to every page.

@@ -1,13 +1,39 @@
+import { siteUrl } from '../content';
 import { appVersion } from '../version';
 
-export function pageShell(title: string, bodyHtml: string): string {
+export interface PageMeta {
+  description: string;
+  /** Site-relative path, e.g. "/" or "/terms", used to build the canonical/og:url. */
+  path: string;
+}
+
+export function pageShell(title: string, bodyHtml: string, meta: PageMeta): string {
+  const url = siteUrl + meta.path;
+  const imageUrl = `${siteUrl}/assets/skylar-256x256.png`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title}</title>
+  <meta name="description" content="${meta.description}" />
+  <link rel="canonical" href="${url}" />
   <link rel="icon" type="image/png" href="/assets/skylar-256x256.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Skylar Technology LLC" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${meta.description}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:image" content="${imageUrl}" />
+  <meta property="og:image:width" content="256" />
+  <meta property="og:image:height" content="256" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${meta.description}" />
+  <meta name="twitter:image" content="${imageUrl}" />
   <style>
     :root {
       --bg: #0f172a;
