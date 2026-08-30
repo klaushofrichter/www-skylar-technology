@@ -28,7 +28,15 @@ export function renderPage(): string {
 
   const body = `
     <header class="hero">
-      <img src="/assets/skylar-256x256.png" alt="Skylar Technology LLC logo" />
+      <picture>
+        <source srcset="/assets/skylar-192x192.webp" type="image/webp" />
+        <img
+          src="/assets/skylar-256x256.png"
+          alt="Skylar Technology LLC logo"
+          width="96"
+          height="96"
+        />
+      </picture>
       <h1>Welcome to Skylar Technology LLC</h1>
       <p class="tagline">AI-native software engineering leadership &amp; transformation</p>
     </header>
