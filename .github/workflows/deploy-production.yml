@@ -104,10 +104,79 @@ jobs:
           kubectl wait --for=condition=Ready ksvc/www-skylar-technology -n www-skylar-technology --timeout=120s
           kubectl get ksvc www-skylar-technology -n www-skylar-technology
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      # This runs before the release is tagged, not after. It used to be the
+      # other way round: the tag was cut as soon as the rollout reported Ready
+      # and the smoke test ran afterwards, so a release could exist for a build
+      # that had never answered on the public URL. That is not hypothetical -
+      # it is what produced v2026.08.28.2 and .3 when the runner was OOM-killed
+      # at this step.
+      - name: Smoke-test production
+        id: smoke
+        env:
+          BASE_URL: https://www.skylar.technology
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          BASE="$BASE_URL"
+          # The deployed build must be the one this run just stamped, so the
+          # version is checked inside the retry loop rather than once after it:
+          # ingress can still answer from the previous revision for a moment
+          # after the ksvc reports Ready, and that is a race to wait out, not a
+          # deploy failure.
+          code=""; served=""; ok=""
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /tmp/health.json -w "%{http_code}" "$BASE/health" || true)
+            if [ "$code" = "200" ]; then
+              # grep -o, not a greedy sed: this pins to the "version" key itself
+              # rather than to the last thing in the payload that looks like one.
+              # `|| true`: pipefail would otherwise turn a version-less body
+              # into a hard failure instead of a retry.
+              served=$(grep -o '"version":"[^"]*"' /tmp/health.json | head -1 | cut -d'"' -f4 || true)
+              if [ "$served" = "$VERSION" ]; then
+                ok=1; echo "health ok, serving ${served}"; break
+              fi
+              echo "still serving ${served:-unknown}, waiting for ${VERSION} (retry ${i}/10)"
+            else
+              echo "health not ready (HTTP ${code}), retry ${i}/10"
+            fi
+            sleep 6
+          done
+          [ -n "$ok" ] || {
+            echo "::error::/health never reported ${VERSION} (last: HTTP ${code:-none}, version ${served:-none})"
+            exit 1
+          }
+          page=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/")
+          [ "$page" = "200" ] || { echo "::error::public page returned ${page}"; exit 1; }
+          echo "public page ok"
+          # The browser suite, which is what actually exercises the rendered
+          # pages rather than just their status codes.
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+          # Recorded for the release notes below. The value of writing this into
+          # the release is that it is evidence tied to a moment: this build
+          # answered on the public URL at this timestamp. Reading it later beats
+          # trusting that a green tick somewhere once meant something.
+          {
+            echo "served_version=$served"
+            echo "page_code=$page"
+            echo "base=$BASE"
+            echo "checked_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Tag the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.ver.outputs.version }}
+          SERVED: ${{ steps.smoke.outputs.served_version }}
+          PAGE_CODE: ${{ steps.smoke.outputs.page_code }}
+          BASE: ${{ steps.smoke.outputs.base }}
+          CHECKED_AT: ${{ steps.smoke.outputs.checked_at }}
         run: |
           set -euo pipefail
           TAG="v${VERSION}"
@@ -138,6 +207,18 @@ jobs:
           else
             git log --no-merges --pretty='- %s' -20 >> /tmp/notes.md
           fi
+          # Only what this deploy itself observed, a few minutes ago, against
+          # the real public URL. Nothing here is read from another workflow's
+          # run - a suite count borrowed from elsewhere would be describing a
+          # different build.
+          printf '\n### Verified at release\n\n' >> /tmp/notes.md
+          printf -- '- Rollout: `ksvc/www-skylar-technology` reached Ready\n' >> /tmp/notes.md
+          printf -- '- `GET %s/health` -> 200, reported version `%s`, matching the build this run stamped\n' \
+            "$BASE" "$SERVED" >> /tmp/notes.md
+          printf -- '- `GET %s/` -> %s\n' "$BASE" "$PAGE_CODE" >> /tmp/notes.md
+          printf -- '- Playwright smoke suite passed against %s\n' "$BASE" >> /tmp/notes.md
+          printf -- '- Checked at %s by [run %s](%s/%s/actions/runs/%s)\n' \
+            "$CHECKED_AT" "$GITHUB_RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> /tmp/notes.md
           printf '\nImage: `ghcr.io/klaushofrichter/www-skylar-technology:%s`\n' "$TAG" >> /tmp/notes.md
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
@@ -145,17 +226,3 @@ jobs:
             --title "$TAG" \
             --notes-file /tmp/notes.md
           echo "Released $TAG"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Run Playwright smoke test against production
-        env:
-          BASE_URL: https://www.skylar.technology
-        run: |
-          set -euo pipefail
-          npm ci
-          npx playwright install --with-deps chromium
-          npm run test:e2e

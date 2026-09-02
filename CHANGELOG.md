@@ -13,8 +13,15 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Added Open Graph (`og:*`) and Twitter Card meta tags, including `og:image`,
-  to every page.
-- Cleared the remaining PageSpeed Insights diagnostics: gzip the HTML responses,
-  serve `/assets` with a one-year immutable cache, offer the logo as a
-  right-sized WebP with a PNG fallback, and stop sending `X-Powered-By`.
+- Applied the dependency-security baseline: Dependabot alerts, security
+  updates and `.github/dependabot.yml` (npm, github-actions, docker), plus
+  `npm audit --audit-level=high` in the required `test` check.
+- Fixed PR checks not running on pull requests to `main`, which is where
+  Dependabot opens its PRs — dependency bumps were previously merged there
+  untested.
+- Upgraded vitest 2 -> 4, clearing a critical and a high advisory in the
+  vite/esbuild chain.
+- Standardised the runtime on Node 26 across both Dockerfile stages, all three
+  workflows, and `@types/node` (which had drifted six majors behind).
+- The production smoke test now runs *before* the release is tagged, and the
+  release notes carry what it observed under "Verified at release".
