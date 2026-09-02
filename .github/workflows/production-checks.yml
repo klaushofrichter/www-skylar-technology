@@ -20,6 +20,13 @@ jobs:
 
       - run: npm ci
 
+      # The build compiles `src` alone, and vitest/playwright strip types
+      # without checking them, so nothing verified `test/` or `e2e/` typed
+      # correctly - a broken @types/* bump would go green. This covers all
+      # three. In `test` for the same reason as the audit below: it is a
+      # required check, so a separate job would gate nothing.
+      - run: npm run typecheck
+
       - run: npm test
 
       # Dependabot notices a vulnerable dependency, but noticing is not

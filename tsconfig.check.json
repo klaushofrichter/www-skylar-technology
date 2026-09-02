@@ -1,0 +1,15 @@
+// Typecheck-only config. The build (tsconfig.json) compiles `src` alone,
+// because that is all that ships - which left `test` and `e2e` checked by
+// nothing: vitest and playwright both strip types without checking them, so a
+// broken @types/* upgrade would go green through CI. Discovered when
+// @types/supertest went 6 -> 7 and the build could not have noticed either way.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The build pins rootDir to `src` so dist mirrors it. Nothing is emitted
+    // here, so widen it or every test file trips TS6059.
+    "rootDir": "."
+  },
+  "include": ["src", "test", "e2e"]
+}
