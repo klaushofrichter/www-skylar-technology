@@ -1,5 +1,22 @@
 # www-skylar-technology
 
+[![Release](https://img.shields.io/github/v/release/klaushofrichter/www-skylar-technology?label=release&color=blue)](https://github.com/klaushofrichter/www-skylar-technology/releases)
+[![Production PR checks](https://github.com/klaushofrichter/www-skylar-technology/actions/workflows/production-checks.yml/badge.svg)](https://github.com/klaushofrichter/www-skylar-technology/actions/workflows/production-checks.yml)
+[![Build and publish image](https://github.com/klaushofrichter/www-skylar-technology/actions/workflows/build-push.yml/badge.svg)](https://github.com/klaushofrichter/www-skylar-technology/actions/workflows/build-push.yml)
+[![Deploy production](https://github.com/klaushofrichter/www-skylar-technology/actions/workflows/deploy-production.yml/badge.svg)](https://github.com/klaushofrichter/www-skylar-technology/actions/workflows/deploy-production.yml)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot&logoColor=white)](https://github.com/klaushofrichter/www-skylar-technology/security/dependabot)
+
+<!-- The release badge tracks the newest tag, which a successful production
+     deploy cuts (see "Versioning and releases"). Since the smoke test now runs
+     before the tag rather than after it, a tag means the build answered on the
+     public URL - but GET /health is still what reports the running version.
+
+     The three workflow badges are live status. The Dependabot one is static -
+     GitHub publishes no endpoint for alert status on a repo, so it asserts
+     that alerts, security updates, and .github/dependabot.yml are all in place
+     rather than checking them. If Dependabot is ever turned off, this badge
+     will not notice. -->
+
 Homepage for Skylar Technology LLC, served at
 [www.skylar.technology](https://www.skylar.technology) — a single static
 welcome page ("Welcome to Skylar Technology LLC"), served by a minimal
