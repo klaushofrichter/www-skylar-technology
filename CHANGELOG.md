@@ -13,6 +13,12 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- Upgraded to Express 5, clearing the last three advisories (`qs`, reachable
+  through `express` and `body-parser`). `npm audit` now reports zero
+  vulnerabilities at every severity.
+- Added coverage for routing fall-through — unknown paths, missing assets,
+  `HEAD`, and bracketed query strings — none of which was tested before.
+
 - Applied the dependency-security baseline: Dependabot alerts, security
   updates and `.github/dependabot.yml` (npm, github-actions, docker), plus
   `npm audit --audit-level=high` in the required `test` check.
