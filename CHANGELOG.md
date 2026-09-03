@@ -13,6 +13,11 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- The Playwright suite now runs in PR checks, on GitHub's runners, instead of
+  in the deploy — so a browser-level regression is caught before the merge
+  rather than once it is already live. The deploy's smoke test keeps its curl
+  checks and the evidence it writes into the release.
+
 - Upgraded TypeScript 5 -> 7, which required migrating `tsconfig.json` off the
   removed `moduleResolution: node`.
 - `test/` and `e2e/` are now typechecked. They never were: the build compiles
