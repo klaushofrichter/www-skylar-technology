@@ -12,7 +12,7 @@ jobs:
   deploy:
     runs-on: [self-hosted, k3s]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # release notes are computed from history and tags
 
@@ -53,14 +53,14 @@ jobs:
           kubectl config use-context in-cluster
 
       - name: Log in to ghcr.io
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -104,11 +104,13 @@ jobs:
           kubectl wait --for=condition=Ready ksvc/www-skylar-technology -n www-skylar-technology --timeout=120s
           kubectl get ksvc www-skylar-technology -n www-skylar-technology
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 26
-
+      # Deliberately curl and not Playwright. The browser suite runs on
+      # GitHub's runners in production-checks.yml, before the merge that gets
+      # here - installing a browser on this runner OOM-killed it at 512Mi,
+      # which GitHub reports as "the self-hosted runner lost communication with
+      # the server", and it keeps browser work off a node that also runs
+      # everything else on this cluster.
+      #
       # This runs before the release is tagged, not after. It used to be the
       # other way round: the tag was cut as soon as the rollout reported Ready
       # and the smoke test ran afterwards, so a release could exist for a build
@@ -153,11 +155,6 @@ jobs:
           page=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/")
           [ "$page" = "200" ] || { echo "::error::public page returned ${page}"; exit 1; }
           echo "public page ok"
-          # The browser suite, which is what actually exercises the rendered
-          # pages rather than just their status codes.
-          npm ci
-          npx playwright install --with-deps chromium
-          npm run test:e2e
           # Recorded for the release notes below. The value of writing this into
           # the release is that it is evidence tied to a moment: this build
           # answered on the public URL at this timestamp. Reading it later beats
@@ -216,7 +213,6 @@ jobs:
           printf -- '- `GET %s/health` -> 200, reported version `%s`, matching the build this run stamped\n' \
             "$BASE" "$SERVED" >> /tmp/notes.md
           printf -- '- `GET %s/` -> %s\n' "$BASE" "$PAGE_CODE" >> /tmp/notes.md
-          printf -- '- Playwright smoke suite passed against %s\n' "$BASE" >> /tmp/notes.md
           printf -- '- Checked at %s by [run %s](%s/%s/actions/runs/%s)\n' \
             "$CHECKED_AT" "$GITHUB_RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> /tmp/notes.md
           printf '\nImage: `ghcr.io/klaushofrichter/www-skylar-technology:%s`\n' "$TAG" >> /tmp/notes.md
