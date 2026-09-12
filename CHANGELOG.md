@@ -13,6 +13,9 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- The version string in the footer now links to this repository, which is
-  public. Given a dotted underline so it reads as a link — the footer's other
-  links are self-evidently links, but a bare version token mid-sentence is not.
+- The deploy no longer fails when another repo pushes to `kube-setup` at the
+  same moment. Every repo on the cluster deploys by pushing to that one shared
+  repo, so its `main` can move between our clone and our push — which is what
+  killed the first attempt at v2026.09.12.1. The manifest update now re-derives
+  itself against fresh upstream and retries, and still fails loudly (before
+  `kubectl apply`) if it cannot push at all.

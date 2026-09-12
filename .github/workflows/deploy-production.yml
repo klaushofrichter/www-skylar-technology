@@ -80,22 +80,56 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          MANIFEST=manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
+          IMAGE=ghcr.io/klaushofrichter/www-skylar-technology
           rm -rf /tmp/kube-setup-deploy
           git clone "https://x-access-token:${KUBE_SETUP_DEPLOY_TOKEN}@github.com/klaushofrichter/kube-setup.git" /tmp/kube-setup-deploy
           cd /tmp/kube-setup-deploy
-          sed -i "s|image: ghcr.io/klaushofrichter/www-skylar-technology:.*|image: ghcr.io/klaushofrichter/www-skylar-technology:${SHA}|" manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
-          grep -q "image: ghcr.io/klaushofrichter/www-skylar-technology:${SHA}$" manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml \
-            || { echo "::error::manifest image line did not update to ${SHA}"; exit 1; }
           git config user.name "www-skylar-technology-deploy-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
-          if git diff --cached --quiet; then
-            echo "No manifest change (image tag already up to date) — skipping commit/push."
-          else
-            git commit -m "Deploy www-skylar-technology ${SHA}"
-            git push
-          fi
-          kubectl apply -f manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
+
+          # Every repo on this cluster deploys by pushing to this one shared
+          # repo, so its main can move between our clone and our push - and it
+          # does: v2026.09.12.1 died here because www-klaushofrichter pushed in
+          # the four seconds we took to build the commit ("cannot lock ref
+          # refs/heads/main"). That is a race to retry, not a deploy failure.
+          #
+          # Each attempt re-derives the edit from fresh upstream rather than
+          # rebasing a commit we already made. The change is one line rewritten
+          # to a fixed value, so recomputing it against whatever main now says
+          # cannot conflict, and a reset --hard discards the stale attempt
+          # along with it. Other repos touch other files, so their work rides
+          # along untouched.
+          pushed=""
+          for attempt in $(seq 1 5); do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${SHA}|" "$MANIFEST"
+            grep -q "image: ${IMAGE}:${SHA}$" "$MANIFEST" \
+              || { echo "::error::manifest image line did not update to ${SHA}"; exit 1; }
+            git add "$MANIFEST"
+            if git diff --cached --quiet; then
+              echo "No manifest change (image tag already up to date) — skipping commit/push."
+              pushed=1; break
+            fi
+            git commit -q -m "Deploy www-skylar-technology ${SHA}"
+            # HEAD:main, not "origin main": we reset to origin/main above, so
+            # this pushes exactly what we built regardless of the local branch name.
+            if git push -q origin HEAD:main; then
+              echo "Manifest pushed on attempt ${attempt}."
+              pushed=1; break
+            fi
+            echo "Push rejected — kube-setup main moved, re-deriving (attempt ${attempt}/5)."
+            sleep $((attempt * 3))
+          done
+          # Never fall through to the apply: without the push, the cluster would
+          # get an image the manifest in git does not record.
+          [ -n "$pushed" ] || {
+            echo "::error::could not push the manifest update after 5 attempts"
+            exit 1
+          }
+
+          kubectl apply -f "$MANIFEST"
           rm -rf /tmp/kube-setup-deploy
 
       - name: Verify rollout
