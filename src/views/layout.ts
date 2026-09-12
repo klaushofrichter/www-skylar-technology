@@ -1,4 +1,4 @@
-import { siteUrl } from '../content';
+import { repoUrl, siteUrl } from '../content';
 import { appVersion } from '../version';
 
 export interface PageMeta {
@@ -196,6 +196,13 @@ export function pageShell(title: string, bodyHtml: string, meta: PageMeta): stri
       text-decoration: none;
     }
     footer a:hover { color: var(--accent); }
+    /* The footer's other links sit in a list where their role is obvious. The
+       version is a bare token mid-sentence, so without a hint it reads as
+       plain text and nobody discovers it is a link at all. */
+    footer a.version {
+      border-bottom: 1px dotted var(--border);
+    }
+    footer a.version:hover { border-bottom-color: var(--accent); }
     @media (max-width: 560px) {
       .cards { grid-template-columns: 1fr; }
       .pills { flex-direction: column; }
@@ -207,7 +214,7 @@ export function pageShell(title: string, bodyHtml: string, meta: PageMeta): stri
     ${bodyHtml}
   </main>
   <footer>
-    Skylar Technology LLC &middot; a registered LLC in the State of Texas &middot; v${appVersion()}
+    Skylar Technology LLC &middot; a registered LLC in the State of Texas &middot; <a class="version" href="${repoUrl}" title="Browse the source for this site">v${appVersion()}</a>
     &middot; <a href="/terms">Terms of Service</a> &middot; <a href="/privacy">Privacy Policy</a>
   </footer>
 </body>
