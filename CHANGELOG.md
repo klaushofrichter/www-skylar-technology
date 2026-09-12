@@ -13,7 +13,6 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Upgraded vitest 4 -> 5. The suite and config needed no changes: the major's
-  breaking changes land on mocks, projects, browser mode and reporter output
-  paths, none of which this repo uses. It also brings a new guard — an async
-  assertion that is never awaited now fails instead of silently passing.
+- The version string in the footer now links to this repository, which is
+  public. Given a dotted underline so it reads as a link — the footer's other
+  links are self-evidently links, but a bare version token mid-sentence is not.

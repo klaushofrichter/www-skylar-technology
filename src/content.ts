@@ -1,5 +1,8 @@
 export const siteUrl = 'https://www.skylar.technology';
 
+// This site's source. Public, so the footer's version string links to it.
+export const repoUrl = 'https://github.com/klaushofrichter/www-skylar-technology';
+
 export const contact = {
   email: 'klaus@skylar.technology',
 };
