@@ -5,7 +5,7 @@ on:
     branches: [production]
 
 permissions:
-  contents: write   # create the release tag
+  contents: write   # create the release tag, and clear the published notes on main
   packages: write
 
 jobs:
@@ -22,18 +22,32 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          # Calendar versioning, generated here rather than carried in the
-          # sources: nothing to remember to bump, and the number says when the
-          # build shipped. Dated in Central time so an evening deploy is not
-          # filed under tomorrow.
-          DATE=$(TZ=America/Chicago date +%Y.%m.%d)
-          # Same-day counter, derived from the releases that already exist —
-          # the tags are the state, so nothing needs storing.
-          TODAY=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 200 \
-                    --json tagName -q '.[].tagName' | grep -c "^v${DATE}\." || true)
-          VERSION="${DATE}.$((TODAY + 1))"
+          # Re-running a deploy that already released must not mint a second
+          # tag for the same commit. The counter below is derived from how many
+          # releases the day already has, so a re-run would count its own
+          # release and produce a fresh number for a commit that is already
+          # out. Ask the releases whether this exact commit has one first; if
+          # so, reuse its version and let the tag step skip as already-released.
+          EXISTING=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+                       --jq ".[] | select(.target_commitish == \"${GITHUB_SHA}\") | .tag_name" \
+                     | awk 'NR==1')
+          if [ -n "$EXISTING" ]; then
+            VERSION="${EXISTING#v}"
+            echo "Commit ${GITHUB_SHA} is already released as ${EXISTING} — reusing that version."
+          else
+            # Calendar versioning, generated here rather than carried in the
+            # sources: nothing to remember to bump, and the number says when the
+            # build shipped. Dated in Central time so an evening deploy is not
+            # filed under tomorrow.
+            DATE=$(TZ=America/Chicago date +%Y.%m.%d)
+            # Same-day counter, derived from the releases that already exist —
+            # the tags are the state, so nothing needs storing.
+            TODAY=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 200 \
+                      --json tagName -q '.[].tagName' | grep -c "^v${DATE}\." || true)
+            VERSION="${DATE}.$((TODAY + 1))"
+            echo "Releasing v$VERSION"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Releasing v$VERSION"
 
       - name: Install kubectl and configure in-cluster access
         run: |
@@ -80,22 +94,56 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          MANIFEST=manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
+          IMAGE=ghcr.io/klaushofrichter/www-skylar-technology
           rm -rf /tmp/kube-setup-deploy
           git clone "https://x-access-token:${KUBE_SETUP_DEPLOY_TOKEN}@github.com/klaushofrichter/kube-setup.git" /tmp/kube-setup-deploy
           cd /tmp/kube-setup-deploy
-          sed -i "s|image: ghcr.io/klaushofrichter/www-skylar-technology:.*|image: ghcr.io/klaushofrichter/www-skylar-technology:${SHA}|" manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
-          grep -q "image: ghcr.io/klaushofrichter/www-skylar-technology:${SHA}$" manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml \
-            || { echo "::error::manifest image line did not update to ${SHA}"; exit 1; }
           git config user.name "www-skylar-technology-deploy-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
-          if git diff --cached --quiet; then
-            echo "No manifest change (image tag already up to date) — skipping commit/push."
-          else
-            git commit -m "Deploy www-skylar-technology ${SHA}"
-            git push
-          fi
-          kubectl apply -f manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
+
+          # Every repo on this cluster deploys by pushing to this one shared
+          # repo, so its main can move between our clone and our push - and it
+          # does: v2026.09.12.1 died here because www-klaushofrichter pushed in
+          # the four seconds we took to build the commit ("cannot lock ref
+          # refs/heads/main"). That is a race to retry, not a deploy failure.
+          #
+          # Each attempt re-derives the edit from fresh upstream rather than
+          # rebasing a commit we already made. The change is one line rewritten
+          # to a fixed value, so recomputing it against whatever main now says
+          # cannot conflict, and a reset --hard discards the stale attempt
+          # along with it. Other repos touch other files, so their work rides
+          # along untouched.
+          pushed=""
+          for attempt in $(seq 1 5); do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${SHA}|" "$MANIFEST"
+            grep -q "image: ${IMAGE}:${SHA}$" "$MANIFEST" \
+              || { echo "::error::manifest image line did not update to ${SHA}"; exit 1; }
+            git add "$MANIFEST"
+            if git diff --cached --quiet; then
+              echo "No manifest change (image tag already up to date) — skipping commit/push."
+              pushed=1; break
+            fi
+            git commit -q -m "Deploy www-skylar-technology ${SHA}"
+            # HEAD:main, not "origin main": we reset to origin/main above, so
+            # this pushes exactly what we built regardless of the local branch name.
+            if git push -q origin HEAD:main; then
+              echo "Manifest pushed on attempt ${attempt}."
+              pushed=1; break
+            fi
+            echo "Push rejected — kube-setup main moved, re-deriving (attempt ${attempt}/5)."
+            sleep $((attempt * 3))
+          done
+          # Never fall through to the apply: without the push, the cluster would
+          # get an image the manifest in git does not record.
+          [ -n "$pushed" ] || {
+            echo "::error::could not push the manifest update after 5 attempts"
+            exit 1
+          }
+
+          kubectl apply -f "$MANIFEST"
           rm -rf /tmp/kube-setup-deploy
 
       - name: Verify rollout
@@ -167,6 +215,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Tag the release
+        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.ver.outputs.version }}
@@ -179,6 +228,7 @@ jobs:
           TAG="v${VERSION}"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "$TAG already released — version not bumped, skipping."
+            echo "created=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           # Notes: whatever was curated under Unreleased, then the commits
@@ -222,3 +272,79 @@ jobs:
             --title "$TAG" \
             --notes-file /tmp/notes.md
           echo "Released $TAG"
+          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      # The release notes consume whatever sits under Unreleased, but nothing
+      # used to remove it afterwards, so the next release republished it all as
+      # if it were new. That is not hypothetical: it happened on three releases
+      # running and was cleared by hand each time. Clearing it here keeps the
+      # section meaning "written but not yet published", which is what the file
+      # says it is.
+      #
+      # Runs only when this job actually created a release, so a skipped or
+      # re-run deploy never clears notes it did not publish.
+      - name: Clear the Unreleased notes this release published
+        if: steps.release.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/curated.md ]; then
+            echo "Nothing was curated under Unreleased — nothing to clear."
+            exit 0
+          fi
+          # Onto main, not production: main is where notes get written, and it
+          # is where the next promotion reads them from. A temp clone keeps the
+          # deploy's own checkout (production) untouched.
+          rm -rf /tmp/changelog-clear
+          git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/changelog-clear
+          cd /tmp/changelog-clear
+          git config user.name "www-skylar-technology-deploy-bot"
+          git config user.email "actions@users.noreply.github.com"
+          # Same re-derive-and-retry shape as the kube-setup push: main moves
+          # under us whenever a PR merges while a deploy is running.
+          pushed=""
+          for attempt in $(seq 1 5); do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            # Removes the lines this release actually published, not the whole
+            # section: main can gain a new note while the deploy is running,
+            # and blanket-clearing would delete it before it was ever released.
+            # /tmp/curated.md is the exact content the notes were built from.
+            awk '
+              function flush(   i, blank) {
+                print ""
+                blank = 0; emitted = 0
+                for (i = 0; i < n; i++) {
+                  if (length(buf[i]) == 0) { if (emitted) blank = 1; continue }
+                  if (blank) print ""
+                  print buf[i]
+                  emitted = 1; blank = 0
+                }
+              }
+              NR == FNR { if (length($0)) published[$0] = 1; next }
+              !inside && /^## \[Unreleased\]/ { print; inside = 1; n = 0; next }
+              inside && /^## \[/ { flush(); if (emitted) print ""; inside = 0; print; next }
+              inside { if (!($0 in published)) buf[n++] = $0; next }
+              { print }
+              END { if (inside) flush() }
+            ' /tmp/curated.md CHANGELOG.md > /tmp/cleared.md
+            mv /tmp/cleared.md CHANGELOG.md
+            git add CHANGELOG.md
+            if git diff --cached --quiet; then
+              echo "Unreleased is already clear on main."
+              pushed=1; break
+            fi
+            git commit -q -m "Clear the Unreleased notes published in v${VERSION}"
+            if git push -q origin HEAD:main; then
+              echo "Cleared Unreleased on main (attempt ${attempt})."
+              pushed=1; break
+            fi
+            echo "Push rejected — main moved, retrying (${attempt}/5)."
+            sleep $((attempt * 3))
+          done
+          # A warning, not a failure: the release is already published and the
+          # site is already live, so failing the job here would misreport the
+          # deploy. The only cost is that the notes need clearing by hand.
+          [ -n "$pushed" ] || echo "::warning::could not clear Unreleased on main — clear it by hand before the next release"
