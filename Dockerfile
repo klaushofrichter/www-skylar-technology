@@ -22,6 +22,11 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY assets ./assets
-USER node
+# Numeric rather than `USER node` (the same user: uid/gid 1000 in this base
+# image). A kubelet enforcing runAsNonRoot can only verify a numeric user; with
+# a name it refuses to start the pod unless the manifest also sets runAsUser.
+# kube-setup requirement 7 does set it, but the image should be verifiably
+# non-root on its own, whatever manifest runs it.
+USER 1000:1000
 EXPOSE 8080
 CMD ["node", "dist/server.js"]

@@ -13,10 +13,9 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Node is now pinned to an exact release (26.10.0) in both Dockerfile stages,
-  instead of the floating `node:26-alpine`. The floating tag let every build
-  pick up whatever Node 26 was newest that day — v26.8.2 became v26.10.0 in
-  v2026.09.23.1 without appearing in any change. A new Node release now arrives
-  as a Dependabot PR, and CI reads the version from the Dockerfile, so that PR
-  is tested on exactly the Node it will ship.
+- The container now declares its user as `1000:1000` instead of `node` — the
+  same user, written as a number, so the image is verifiably non-root on its
+  own. Prepares for kube-setup's container security policy (requirement 7):
+  the app was confirmed to run with every capability dropped, privilege
+  escalation blocked and the default seccomp filter applied.
 
