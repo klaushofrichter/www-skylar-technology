@@ -14,10 +14,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Same Node as the image; see production-checks.yml for why it is read from the Dockerfile.
+      - name: Read the Node version from the Dockerfile
+        id: node
+        run: |
+          set -euo pipefail
+          versions=$(sed -nE 's/^FROM node:([0-9]+\.[0-9]+\.[0-9]+)-alpine.*/\1/p' Dockerfile | sort -u)
+          shown=$(printf '%s' "$versions" | paste -sd, -)
+          # Exactly one pinned version: both stages present, pinned, and equal.
+          [ "$(sed -nE '/^FROM node:/p' Dockerfile | wc -l)" -eq 2 ] \
+            && [ "$(printf '%s\n' "$versions" | grep -c .)" -eq 1 ] \
+            || { echo "::error::Dockerfile Node stages must be pinned to one exact version (found: ${shown:-none})"; exit 1; }
+          echo "version=$versions" >> "$GITHUB_OUTPUT"
+          echo "Node $versions (from Dockerfile)"
+
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 26
+          node-version: ${{ steps.node.outputs.version }}
 
       - name: Install dependencies and run tests
         run: |

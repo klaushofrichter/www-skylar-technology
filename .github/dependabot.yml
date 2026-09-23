@@ -60,7 +60,9 @@ updates:
         patterns:
           - "*"
 
-  # The runtime base image (node:<major>-alpine in both Dockerfile stages).
+  # The runtime base image, pinned to an exact node:<x.y.z>-alpine in both
+  # Dockerfile stages. This entry is what turns each Node release into a PR;
+  # CI reads the version from the Dockerfile, so the bump is tested on it.
   - package-ecosystem: docker
     directory: /
     schedule:
