@@ -59,10 +59,12 @@ unaffected and is not this cluster's concern.
 ## Branches
 
 - `main` — normal development, unprotected. Push here builds and pushes
-  `ghcr.io/klaushofrichter/www-skylar-technology:latest` +
-  `:<sha>` via `.github/workflows/build-push.yml`, but does **not** deploy.
-- `production` — protected, PR-only from `main`, requires the `test` and
-  `codeql` status checks. Merging here triggers
+  `ghcr.io/klaushofrichter/www-skylar-technology:main` via
+  `.github/workflows/build-push.yml`, but does **not** deploy. `:<sha>`,
+  `:v<version>` and `:latest` are written only by the production deploy, so
+  `:latest` is always what is released.
+- `production` — protected, PR-only from `main`, requires the `test`,
+  `codeql` and `e2e` status checks. Merging here triggers
   `.github/workflows/deploy-production.yml` on the in-cluster self-hosted
   runner, which builds/pushes the image, updates the cluster manifest, and
   applies it.

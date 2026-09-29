@@ -45,11 +45,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # `:main` only. `:<sha>` and `:latest` belong to deploy-production.yml
+      # alone. This build used to push both, which made them contested: the
+      # cluster manifest pins `:<sha>`, so if this build ever ran for the same
+      # commit as a release, whichever finished last owned the tag and the next
+      # pod restart would silently run an untested main build (it happened to
+      # kauf-server). We were shielded only because promotions are merge
+      # commits that never exist on main - one fast-forward promotion would have
+      # opened the race. And `:latest` meant "production" or "newest main build"
+      # depending on which workflow ran last. Now `:latest` is always the
+      # release. See kube-setup docs/cluster-deployment-requirements.md, Traps.
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/klaushofrichter/www-skylar-technology:latest
-            ghcr.io/klaushofrichter/www-skylar-technology:${{ github.sha }}
+            ghcr.io/klaushofrichter/www-skylar-technology:main

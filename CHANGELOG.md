@@ -13,9 +13,9 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- The container now declares its user as `1000:1000` instead of `node` — the
-  same user, written as a number, so the image is verifiably non-root on its
-  own. Prepares for kube-setup's container security policy (requirement 7):
-  the app was confirmed to run with every capability dropped, privilege
-  escalation blocked and the default seccomp filter applied.
+- Builds of `main` now publish only `:main`. They used to push `:latest` and
+  `:<sha>` too, the same tags the production deploy writes, so `:latest`
+  meant whichever workflow ran last, and a `main` build of a released commit
+  could replace the image the cluster pins. The deploy is now the only writer
+  of `:<sha>`, `:v<version>` and `:latest`, so `:latest` is always the release.
 
