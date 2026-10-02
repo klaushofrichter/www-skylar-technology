@@ -26,6 +26,10 @@ test('footer links to the Terms of Service and Privacy Policy pages', async ({ p
 
   const backToHome = page.locator('a.back-link');
   await backToHome.click();
+  // Without this, a broken back link still passes: the Terms page has the same
+  // footer, so the Privacy click below would succeed from there too.
+  await expect(page).toHaveURL('/');
+  await expect(page.locator('h1')).toHaveText('Welcome to Skylar Technology LLC');
 
   await page.click('footer a[href="/privacy"]');
   await expect(page.locator('h1')).toHaveText('Privacy Policy');

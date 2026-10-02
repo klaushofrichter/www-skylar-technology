@@ -13,9 +13,13 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Builds of `main` now publish only `:main`. They used to push `:latest` and
-  `:<sha>` too, the same tags the production deploy writes, so `:latest`
-  meant whichever workflow ran last, and a `main` build of a released commit
-  could replace the image the cluster pins. The deploy is now the only writer
-  of `:<sha>`, `:v<version>` and `:latest`, so `:latest` is always the release.
+- The server now shuts down when asked. In the container, node runs as
+  process 1, which ignores any signal it has no handler for — so on every
+  deploy the old pod ignored Kubernetes' stop signal, sat out the full
+  300-second grace period, and was then force-killed. It now closes its
+  connections and exits on SIGTERM; measured, a container stop went from the
+  whole grace period to under a second.
+- The browser test now checks that the legal pages' "back" link actually leads
+  home. It previously clicked onward without looking, and since every page
+  shares the same footer, a broken back link would still have passed.
 
