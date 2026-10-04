@@ -13,3 +13,12 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- Simplified the build and deploy tooling without changing what ships. The
+  changelog logic the release step runs now lives in `scripts/` with unit
+  tests, instead of inline in the deploy where only a real release exercised
+  it. The deploy's scratch files, including a clone holding a deploy token,
+  now live in the runner's per-job temp directory rather than `/tmp`, which
+  outlived failed runs. Also: one shared Node setup instead of three copies,
+  Playwright starts its own test server, and a new release no longer
+  invalidates the image's dependency layers.
+

@@ -1,0 +1,29 @@
+name: Set up Node from the Dockerfile
+description: >-
+  Installs exactly the Node release the Dockerfile pins, failing unless both
+  stages are present, pinned and equal.
+
+# The Dockerfile is the one place the Node version is set. Reading it here
+# means a Dependabot bump to the base image is tested on the exact version it
+# will ship, not on whatever `26` resolves to that day. Shared by every job
+# that sets up Node, so the guard has one copy rather than three.
+runs:
+  using: composite
+  steps:
+    - name: Read the Node version from the Dockerfile
+      id: node
+      shell: bash
+      run: |
+        set -euo pipefail
+        versions=$(sed -nE 's/^FROM node:([0-9]+\.[0-9]+\.[0-9]+)-alpine.*/\1/p' Dockerfile | sort -u)
+        shown=$(printf '%s' "$versions" | paste -sd, -)
+        # Exactly one pinned version: both stages present, pinned, and equal.
+        [ "$(sed -nE '/^FROM node:/p' Dockerfile | wc -l)" -eq 2 ] \
+          && [ "$(printf '%s\n' "$versions" | grep -c .)" -eq 1 ] \
+          || { echo "::error::Dockerfile Node stages must be pinned to one exact version (found: ${shown:-none})"; exit 1; }
+        echo "version=$versions" >> "$GITHUB_OUTPUT"
+        echo "Node $versions (from Dockerfile)"
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: ${{ steps.node.outputs.version }}

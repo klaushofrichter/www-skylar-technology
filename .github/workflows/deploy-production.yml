@@ -96,9 +96,14 @@ jobs:
           set -euo pipefail
           MANIFEST=manifests/www-skylar-technology/www-skylar-technology-ksvc.yaml
           IMAGE=ghcr.io/klaushofrichter/www-skylar-technology
-          rm -rf /tmp/kube-setup-deploy
-          git clone "https://x-access-token:${KUBE_SETUP_DEPLOY_TOKEN}@github.com/klaushofrichter/kube-setup.git" /tmp/kube-setup-deploy
-          cd /tmp/kube-setup-deploy
+          # $RUNNER_TEMP, not /tmp: the runner empties it at the start and end of
+          # every job, failed ones included. This clone's .git/config holds the
+          # token from the URL, and on the long-lived self-hosted runner a /tmp
+          # clone outlived any run that failed before its own `rm -rf`. The rm
+          # here only means a clone never depends on that guarantee.
+          rm -rf "$RUNNER_TEMP/kube-setup-deploy"
+          git clone "https://x-access-token:${KUBE_SETUP_DEPLOY_TOKEN}@github.com/klaushofrichter/kube-setup.git" "$RUNNER_TEMP/kube-setup-deploy"
+          cd "$RUNNER_TEMP/kube-setup-deploy"
           git config user.name "www-skylar-technology-deploy-bot"
           git config user.email "actions@users.noreply.github.com"
 
@@ -144,7 +149,6 @@ jobs:
           }
 
           kubectl apply -f "$MANIFEST"
-          rm -rf /tmp/kube-setup-deploy
 
       - name: Verify rollout
         run: |
@@ -180,13 +184,13 @@ jobs:
           # deploy failure.
           code=""; served=""; ok=""
           for i in $(seq 1 10); do
-            code=$(curl -s -o /tmp/health.json -w "%{http_code}" "$BASE/health" || true)
+            code=$(curl -s -o "$RUNNER_TEMP/health.json" -w "%{http_code}" "$BASE/health" || true)
             if [ "$code" = "200" ]; then
               # grep -o, not a greedy sed: this pins to the "version" key itself
               # rather than to the last thing in the payload that looks like one.
               # `|| true`: pipefail would otherwise turn a version-less body
               # into a hard failure instead of a retry.
-              served=$(grep -o '"version":"[^"]*"' /tmp/health.json | head -1 | cut -d'"' -f4 || true)
+              served=$(grep -o '"version":"[^"]*"' "$RUNNER_TEMP/health.json" | head -1 | cut -d'"' -f4 || true)
               if [ "$served" = "$VERSION" ]; then
                 ok=1; echo "health ok, serving ${served}"; break
               fi
@@ -233,44 +237,44 @@ jobs:
           fi
           # Notes: whatever was curated under Unreleased, then the commits
           # since the previous release. Neither needs maintaining for a release
-          # to be readable.
-          : > /tmp/notes.md
-          awk '
-            /^## \[Unreleased\]/ { grab = 1; next }
-            grab && /^## \[/ { exit }
-            grab { print }
-          ' CHANGELOG.md | sed '/^[[:space:]]*$/d' > /tmp/curated.md
-          if [ -s /tmp/curated.md ]; then
-            cat /tmp/curated.md >> /tmp/notes.md
-            printf '\n' >> /tmp/notes.md
-          fi
+          # to be readable. curated.md is also what the next step removes from
+          # Unreleased, so it stays in $RUNNER_TEMP for the rest of the job.
+          CURATED="$RUNNER_TEMP/curated.md"
+          NOTES="$RUNNER_TEMP/notes.md"
+          awk -f scripts/changelog-unreleased.awk CHANGELOG.md > "$CURATED"
           PREV=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 \
                    --json tagName -q '.[0].tagName' 2>/dev/null || true)
-          printf '### Changes\n\n' >> /tmp/notes.md
-          if [ -n "$PREV" ] && git rev-parse "$PREV" >/dev/null 2>&1; then
-            git log --no-merges --pretty='- %s' "${PREV}..HEAD" >> /tmp/notes.md
-            printf '\n**Full diff**: %s/compare/%s...%s\n' \
-              "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$PREV" "$TAG" >> /tmp/notes.md
-          else
-            git log --no-merges --pretty='- %s' -20 >> /tmp/notes.md
-          fi
-          # Only what this deploy itself observed, a few minutes ago, against
-          # the real public URL. Nothing here is read from another workflow's
-          # run - a suite count borrowed from elsewhere would be describing a
-          # different build.
-          printf '\n### Verified at release\n\n' >> /tmp/notes.md
-          printf -- '- Rollout: `ksvc/www-skylar-technology` reached Ready\n' >> /tmp/notes.md
-          printf -- '- `GET %s/health` -> 200, reported version `%s`, matching the build this run stamped\n' \
-            "$BASE" "$SERVED" >> /tmp/notes.md
-          printf -- '- `GET %s/` -> %s\n' "$BASE" "$PAGE_CODE" >> /tmp/notes.md
-          printf -- '- Checked at %s by [run %s](%s/%s/actions/runs/%s)\n' \
-            "$CHECKED_AT" "$GITHUB_RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" >> /tmp/notes.md
-          printf '\nImage: `ghcr.io/klaushofrichter/www-skylar-technology:%s`\n' "$TAG" >> /tmp/notes.md
+          {
+            if [ -s "$CURATED" ]; then
+              cat "$CURATED"
+              printf '\n'
+            fi
+            printf '### Changes\n\n'
+            if [ -n "$PREV" ] && git rev-parse "$PREV" >/dev/null 2>&1; then
+              git log --no-merges --pretty='- %s' "${PREV}..HEAD"
+              printf '\n**Full diff**: %s/compare/%s...%s\n' \
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$PREV" "$TAG"
+            else
+              git log --no-merges --pretty='- %s' -20
+            fi
+            # Only what this deploy itself observed, a few minutes ago, against
+            # the real public URL. Nothing here is read from another workflow's
+            # run - a suite count borrowed from elsewhere would be describing a
+            # different build.
+            printf '\n### Verified at release\n\n'
+            printf -- '- Rollout: `ksvc/www-skylar-technology` reached Ready\n'
+            printf -- '- `GET %s/health` -> 200, reported version `%s`, matching the build this run stamped\n' \
+              "$BASE" "$SERVED"
+            printf -- '- `GET %s/` -> %s\n' "$BASE" "$PAGE_CODE"
+            printf -- '- Checked at %s by [run %s](%s/%s/actions/runs/%s)\n' \
+              "$CHECKED_AT" "$GITHUB_RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf '\nImage: `ghcr.io/klaushofrichter/www-skylar-technology:%s`\n' "$TAG"
+          } > "$NOTES"
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "$TAG" \
-            --notes-file /tmp/notes.md
+            --notes-file "$NOTES"
           echo "Released $TAG"
           echo "created=true" >> "$GITHUB_OUTPUT"
 
@@ -290,16 +294,17 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
-          if [ ! -s /tmp/curated.md ]; then
+          CURATED="$RUNNER_TEMP/curated.md"
+          if [ ! -s "$CURATED" ]; then
             echo "Nothing was curated under Unreleased — nothing to clear."
             exit 0
           fi
           # Onto main, not production: main is where notes get written, and it
           # is where the next promotion reads them from. A temp clone keeps the
           # deploy's own checkout (production) untouched.
-          rm -rf /tmp/changelog-clear
-          git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/changelog-clear
-          cd /tmp/changelog-clear
+          rm -rf "$RUNNER_TEMP/changelog-clear"
+          git clone -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/changelog-clear"
+          cd "$RUNNER_TEMP/changelog-clear"
           git config user.name "www-skylar-technology-deploy-bot"
           git config user.email "actions@users.noreply.github.com"
           # Same re-derive-and-retry shape as the kube-setup push: main moves
@@ -308,29 +313,12 @@ jobs:
           for attempt in $(seq 1 5); do
             git fetch -q origin main
             git reset -q --hard origin/main
-            # Removes the lines this release actually published, not the whole
-            # section: main can gain a new note while the deploy is running,
-            # and blanket-clearing would delete it before it was ever released.
-            # /tmp/curated.md is the exact content the notes were built from.
-            awk '
-              function flush(   i, blank) {
-                print ""
-                blank = 0; emitted = 0
-                for (i = 0; i < n; i++) {
-                  if (length(buf[i]) == 0) { if (emitted) blank = 1; continue }
-                  if (blank) print ""
-                  print buf[i]
-                  emitted = 1; blank = 0
-                }
-              }
-              NR == FNR { if (length($0)) published[$0] = 1; next }
-              !inside && /^## \[Unreleased\]/ { print; inside = 1; n = 0; next }
-              inside && /^## \[/ { flush(); if (emitted) print ""; inside = 0; print; next }
-              inside { if (!($0 in published)) buf[n++] = $0; next }
-              { print }
-              END { if (inside) flush() }
-            ' /tmp/curated.md CHANGELOG.md > /tmp/cleared.md
-            mv /tmp/cleared.md CHANGELOG.md
+            # Removes only the lines this release published: a note merged
+            # while the deploy ran must survive. The script comes from this
+            # deploy's checkout, not from the clone of main being edited.
+            awk -f "$GITHUB_WORKSPACE/scripts/changelog-clear-published.awk" \
+              "$CURATED" CHANGELOG.md > "$RUNNER_TEMP/cleared.md"
+            mv "$RUNNER_TEMP/cleared.md" CHANGELOG.md
             git add CHANGELOG.md
             if git diff --cached --quiet; then
               echo "Unreleased is already clear on main."
