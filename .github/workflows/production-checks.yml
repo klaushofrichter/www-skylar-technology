@@ -14,25 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The Dockerfile is the one place the Node version is set. Reading it
-      # here means a Dependabot bump to the base image is tested on the exact
-      # version it will ship, not on whatever `26` resolves to that day.
-      - name: Read the Node version from the Dockerfile
-        id: node
-        run: |
-          set -euo pipefail
-          versions=$(sed -nE 's/^FROM node:([0-9]+\.[0-9]+\.[0-9]+)-alpine.*/\1/p' Dockerfile | sort -u)
-          shown=$(printf '%s' "$versions" | paste -sd, -)
-          # Exactly one pinned version: both stages present, pinned, and equal.
-          [ "$(sed -nE '/^FROM node:/p' Dockerfile | wc -l)" -eq 2 ] \
-            && [ "$(printf '%s\n' "$versions" | grep -c .)" -eq 1 ] \
-            || { echo "::error::Dockerfile Node stages must be pinned to one exact version (found: ${shown:-none})"; exit 1; }
-          echo "version=$versions" >> "$GITHUB_OUTPUT"
-          echo "Node $versions (from Dockerfile)"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ steps.node.outputs.version }}
+      - uses: ./.github/actions/node-from-dockerfile
 
       - run: npm ci
 
@@ -72,23 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Same Node as the image; see the test job for why it is read from the Dockerfile.
-      - name: Read the Node version from the Dockerfile
-        id: node
-        run: |
-          set -euo pipefail
-          versions=$(sed -nE 's/^FROM node:([0-9]+\.[0-9]+\.[0-9]+)-alpine.*/\1/p' Dockerfile | sort -u)
-          shown=$(printf '%s' "$versions" | paste -sd, -)
-          # Exactly one pinned version: both stages present, pinned, and equal.
-          [ "$(sed -nE '/^FROM node:/p' Dockerfile | wc -l)" -eq 2 ] \
-            && [ "$(printf '%s\n' "$versions" | grep -c .)" -eq 1 ] \
-            || { echo "::error::Dockerfile Node stages must be pinned to one exact version (found: ${shown:-none})"; exit 1; }
-          echo "version=$versions" >> "$GITHUB_OUTPUT"
-          echo "Node $versions (from Dockerfile)"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ steps.node.outputs.version }}
+      - uses: ./.github/actions/node-from-dockerfile
 
       - run: npm ci
 
@@ -96,21 +62,9 @@ jobs:
 
       - run: npm run build
 
-      - name: Start the server and run the suite
-        env:
-          BASE_URL: http://localhost:8080
-        run: |
-          set -euo pipefail
-          npm start &
-          echo $! > /tmp/server.pid
-          for i in $(seq 1 20); do
-            curl -sf http://localhost:8080/health >/dev/null && break
-            echo "waiting for server (${i}/20)"; sleep 2
-          done
-          curl -sf http://localhost:8080/health >/dev/null \
-            || { echo "::error::server did not come up"; exit 1; }
-          npm run test:e2e
-          kill "$(cat /tmp/server.pid)" || true
+      # Playwright starts the built server, waits for /health and stops it
+      # (webServer in playwright.config.ts).
+      - run: npm run test:e2e
 
   codeql:
     runs-on: ubuntu-latest
@@ -133,11 +87,7 @@ jobs:
       - name: Fail if CodeQL found any results
         run: |
           set -euo pipefail
-          total=0
-          for f in sarif-results/*.sarif; do
-            count=$(jq '[.runs[].results[]] | length' "$f")
-            total=$((total + count))
-          done
+          total=$(jq -s '[.[].runs[].results[]] | length' sarif-results/*.sarif)
           echo "CodeQL findings: $total"
           if [ "$total" -gt 0 ]; then
             echo "::error::CodeQL found $total finding(s) — blocking merge"

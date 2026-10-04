@@ -13,13 +13,12 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- The server now shuts down when asked. In the container, node runs as
-  process 1, which ignores any signal it has no handler for — so on every
-  deploy the old pod ignored Kubernetes' stop signal, sat out the full
-  300-second grace period, and was then force-killed. It now closes its
-  connections and exits on SIGTERM; measured, a container stop went from the
-  whole grace period to under a second.
-- The browser test now checks that the legal pages' "back" link actually leads
-  home. It previously clicked onward without looking, and since every page
-  shares the same footer, a broken back link would still have passed.
+- Simplified the build and deploy tooling without changing what ships. The
+  changelog logic the release step runs now lives in `scripts/` with unit
+  tests, instead of inline in the deploy where only a real release exercised
+  it. The deploy's scratch files, including a clone holding a deploy token,
+  now live in the runner's per-job temp directory rather than `/tmp`, which
+  outlived failed runs. Also: one shared Node setup instead of three copies,
+  Playwright starts its own test server, and a new release no longer
+  invalidates the image's dependency layers.
 

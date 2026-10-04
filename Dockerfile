@@ -13,15 +13,18 @@ RUN npm run build
 
 FROM node:26.10.0-alpine
 WORKDIR /app
-# Stamped by the deploy so the running container can report which build it is.
-# Defaults to "dev" for local builds, which is what you want to see locally.
-ARG APP_VERSION=dev
-ENV APP_VERSION=$APP_VERSION
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY assets ./assets
+# Stamped by the deploy so the running container can report which build it is.
+# Defaults to "dev" for local builds, which is what you want to see locally.
+# Kept below the install and copies: every release has a new value, and a
+# build arg invalidates the cache for every layer after it, so declaring it
+# earlier re-ran `npm ci` on every deploy even with an unchanged lockfile.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 # Numeric rather than `USER node` (the same user: uid/gid 1000 in this base
 # image). A kubelet enforcing runAsNonRoot can only verify a numeric user; with
 # a name it refuses to start the pod unless the manifest also sets runAsUser.

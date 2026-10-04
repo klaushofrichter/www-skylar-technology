@@ -50,11 +50,13 @@ npm run dev
 
 ## End-to-end smoke test
 
-`e2e/smoke.spec.ts` (Playwright) checks the home page and `/health` against
-a running instance. Run it locally against `npm run dev`/Docker with
-`BASE_URL=http://localhost:8080 npm run test:e2e`. The deploy workflow runs
-it against `https://www.skylar.technology` right after every production
-rollout, as the actual smoke test that gates a deploy as successful.
+`e2e/smoke.spec.ts` (Playwright) checks the home page and `/health` in a
+real browser. `npm run build && npm run test:e2e` starts the built server,
+runs the suite and stops it again; set `BASE_URL` to test something already
+running instead (a dev server, a container). It runs in the `e2e` PR check,
+which `production` requires, so a browser-level regression is caught before
+the merge rather than after a deploy. The deploy's own smoke test is a
+`curl` check of `/health` and `/` against the live site.
 
 ## Deployment
 

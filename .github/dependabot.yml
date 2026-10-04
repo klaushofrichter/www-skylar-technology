@@ -43,7 +43,11 @@ updates:
   # Workflow actions. Without this, action majors are only noticed when a
   # runtime deprecation warning starts appearing in logs.
   - package-ecosystem: github-actions
-    directory: /
+    # Local composite actions pin actions too, and are only scanned when
+    # their directory is listed - "/" alone covers .github/workflows.
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
       day: monday
