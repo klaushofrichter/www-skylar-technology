@@ -51,6 +51,10 @@ jobs:
     # Against a locally started server, not production - this gates the merge,
     # so it has to be able to run before anything is deployed.
     runs-on: ubuntu-latest
+    # The job takes about a minute. Without a limit, a stalled browser
+    # download in `playwright install` ran for GitHub's 6-hour default before
+    # it was cancelled (promotion #55), holding up the merge the whole time.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
