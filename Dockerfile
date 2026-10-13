@@ -3,7 +3,7 @@
 # v26.10.0 shipped in v2026.09.23.1 without appearing in any diff. Pinned, a
 # new Node release arrives as a Dependabot PR (docker ecosystem) that is tested
 # before it ships. CI reads this version from here, so keep both lines equal.
-FROM node:26.10.0-alpine AS builder
+FROM node:26.11.1-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -11,7 +11,7 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build
 
-FROM node:26.10.0-alpine
+FROM node:26.11.1-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
