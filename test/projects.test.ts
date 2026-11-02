@@ -19,7 +19,7 @@ function projectsSection(html: string): string {
   return match![0];
 }
 
-describe('Example Open Source Projects', () => {
+describe('Open Source Projects, built with AI', () => {
   it('lists the three projects, in order, with their repo and site URLs', () => {
     expect(projects.map(({ title, repoUrl, siteUrl }) => ({ title, repoUrl, siteUrl }))).toEqual(expected);
   });
@@ -33,7 +33,7 @@ describe('Example Open Source Projects', () => {
     expect(engagement).toBeGreaterThan(-1);
     expect(projectsAt).toBeGreaterThan(engagement);
     expect(contact).toBeGreaterThan(projectsAt);
-    expect(projectsSection(text)).toContain('<h2>Example Open Source Projects</h2>');
+    expect(projectsSection(text)).toContain('<h2>Open Source Projects, built with AI</h2>');
   });
 
   it('renders one card per project with a description', async () => {
