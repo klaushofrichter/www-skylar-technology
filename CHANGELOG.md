@@ -13,6 +13,3 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Home page: new "Example Open Source Projects" row with Games, Cams and Art,
-  each linking to its GitHub repository and its live site.
-
