@@ -33,6 +33,30 @@ export const engagements = [
   { title: 'Interim Management', description: 'Hands-on leadership during a transition.' },
 ];
 
+// Each project card links to both its public repository and its live site.
+export const projects = [
+  {
+    title: 'Games',
+    description:
+      'A game table for board and card games, played around a shared touchscreen with phones as private hands, locally or remotely.',
+    repoUrl: 'https://github.com/klaushofrichter/games-service',
+    siteUrl: 'https://games.skylar.technology',
+  },
+  {
+    title: 'Cams',
+    description:
+      'A web viewer and controller for Reolink cameras: live video, recorded events, clips and camera settings.',
+    repoUrl: 'https://github.com/klaushofrichter/cams',
+    siteUrl: 'https://cams.skylar.technology',
+  },
+  {
+    title: 'Art',
+    description: 'A small gallery of paintings and photographs.',
+    repoUrl: 'https://github.com/klaushofrichter/art',
+    siteUrl: 'https://art.klaushofrichter.net',
+  },
+];
+
 export const availability =
   'All services are offered remotely, anywhere in US time zones, with the option for on-site visits when appropriate.';
 
