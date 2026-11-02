@@ -13,5 +13,3 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-- Home page: the third row of cards is now headed "Open Source Projects, built with AI".
-
