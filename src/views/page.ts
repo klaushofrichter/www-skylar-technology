@@ -1,4 +1,4 @@
-import { availability, bio, contact, engagements, links, services } from '../content';
+import { availability, bio, contact, engagements, links, projects, services } from '../content';
 import { pageShell } from './layout';
 
 export function renderPage(): string {
@@ -18,6 +18,24 @@ export function renderPage(): string {
         <div class="pill">
           <strong>${e.title}</strong>
           <span>${e.description}</span>
+        </div>`
+    )
+    .join('');
+
+  // The visible "GitHub" text is ambiguous out of context (three cards share
+  // it), so its accessible name adds the project; it still starts with the
+  // visible words, as WCAG's label-in-name asks. The site link's host name
+  // already says where it goes.
+  const projectCards = projects
+    .map(
+      (p) => `
+        <div class="card">
+          <h3>${p.title}</h3>
+          <p>${p.description}</p>
+          <div class="card-links">
+            <a href="${p.repoUrl}" target="_blank" rel="noopener noreferrer" aria-label="GitHub: ${p.title} source">GitHub</a>
+            <a href="${p.siteUrl}" target="_blank" rel="noopener noreferrer">${new URL(p.siteUrl).host}</a>
+          </div>
         </div>`
     )
     .join('');
@@ -55,6 +73,11 @@ export function renderPage(): string {
       <h2>Engagement</h2>
       <div class="pills">${engagementItems}</div>
       <p class="availability">${availability}</p>
+    </section>
+
+    <section class="projects">
+      <h2>Example Open Source Projects</h2>
+      <div class="cards">${projectCards}</div>
     </section>
 
     <section class="contact">

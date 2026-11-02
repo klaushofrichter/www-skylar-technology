@@ -35,6 +35,32 @@ test('footer links to the Terms of Service and Privacy Policy pages', async ({ p
   await expect(page.locator('h1')).toHaveText('Privacy Policy');
 });
 
+test('Example Open Source Projects shows three cards with GitHub and site links', async ({ page }) => {
+  await page.goto('/');
+  const section = page.locator('section.projects');
+  await expect(section.locator('h2')).toHaveText('Example Open Source Projects');
+  await expect(section.locator('.card h3')).toHaveText(['Games', 'Cams', 'Art']);
+
+  const projects = [
+    ['Games', 'https://github.com/klaushofrichter/games-service', 'https://games.skylar.technology'],
+    ['Cams', 'https://github.com/klaushofrichter/cams', 'https://cams.skylar.technology'],
+    ['Art', 'https://github.com/klaushofrichter/art', 'https://art.klaushofrichter.net'],
+  ];
+  for (const [title, repo, site] of projects) {
+    const repoLink = section.getByRole('link', { name: `GitHub: ${title} source` });
+    await expect(repoLink).toBeVisible();
+    await expect(repoLink).toHaveAttribute('href', repo);
+    const siteLink = section.getByRole('link', { name: new URL(site).host, exact: true });
+    await expect(siteLink).toBeVisible();
+    await expect(siteLink).toHaveAttribute('href', site);
+  }
+  await expect(section.locator('a')).toHaveCount(6);
+  for (const a of await section.locator('a').all()) {
+    await expect(a).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(a).toHaveAttribute('target', '_blank');
+  }
+});
+
 test('/health reports ok', async ({ request }) => {
   const response = await request.get('/health');
   expect(response.status()).toBe(200);
