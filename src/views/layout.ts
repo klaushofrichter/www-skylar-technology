@@ -118,6 +118,25 @@ export function pageShell(title: string, bodyHtml: string, meta: PageMeta): stri
       color: var(--text-muted);
       margin: 0;
     }
+    /* Project cards end in a link row; a column flex pins it to the bottom so
+       the rows line up across cards whose descriptions differ in length. */
+    .projects .card {
+      display: flex;
+      flex-direction: column;
+    }
+    .card-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1rem;
+      margin-top: auto;
+      padding-top: 0.7rem;
+    }
+    .card-links a {
+      font-size: 0.85rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .card-links a:hover { text-decoration: underline; }
     .pills {
       display: flex;
       flex-wrap: wrap;
