@@ -35,10 +35,10 @@ test('footer links to the Terms of Service and Privacy Policy pages', async ({ p
   await expect(page.locator('h1')).toHaveText('Privacy Policy');
 });
 
-test('Example Open Source Projects shows three cards with GitHub and site links', async ({ page }) => {
+test('Open Source Projects, built with AI shows three cards with GitHub and site links', async ({ page }) => {
   await page.goto('/');
   const section = page.locator('section.projects');
-  await expect(section.locator('h2')).toHaveText('Example Open Source Projects');
+  await expect(section.locator('h2')).toHaveText('Open Source Projects, built with AI');
   await expect(section.locator('.card h3')).toHaveText(['Games', 'Cams', 'Art']);
 
   const projects = [

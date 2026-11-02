@@ -76,7 +76,7 @@ export function renderPage(): string {
     </section>
 
     <section class="projects">
-      <h2>Example Open Source Projects</h2>
+      <h2>Open Source Projects, built with AI</h2>
       <div class="cards">${projectCards}</div>
     </section>
 
