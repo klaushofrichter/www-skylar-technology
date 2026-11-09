@@ -13,3 +13,9 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- The site is now checked to kube-setup's "public web pages" baseline: every
+  page is walked in four browsers (desktop Chrome and Firefox, an Android
+  phone, an iPhone), audited for WCAG 2.2 AA accessibility, and scored by
+  Lighthouse on a phone before each release, and again on the live site after
+  each release and daily. No visible change: the site already met it.
+

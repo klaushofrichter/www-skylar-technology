@@ -40,21 +40,22 @@ jobs:
       - run: npm audit --audit-level=high
 
   e2e:
-    # The Playwright suite runs here, on GitHub's runners, rather than in the
-    # deploy. Two reasons, in order of importance: a browser-level regression
-    # is caught while it can still be stopped, instead of once it is already
-    # live; and `npx playwright install` on the in-cluster self-hosted runner
-    # OOM-killed it at 512Mi, which GitHub reports as "the self-hosted runner
-    # lost communication with the server" and which also killed the release
-    # step that followed.
+    # The release gate, in a browser, on GitHub's runners: `npx playwright
+    # install` on the in-cluster self-hosted runner OOM-killed it at 512Mi,
+    # which GitHub reports as "the self-hosted runner lost communication with
+    # the server" and which also killed the release step that followed.
     #
-    # Against a locally started server, not production - this gates the merge,
-    # so it has to be able to run before anything is deployed.
+    # It tests the Docker image this commit builds, the same artifact the
+    # deploy ships, in four browsers: desktop Chrome, an Android phone, an
+    # iPhone (WebKit, i.e. Safari) and desktop Firefox. Then Lighthouse,
+    # Google's PageSpeed engine, on a phone profile. One job, so the required
+    # check stays the single `e2e` context. This is kube-setup's "public web
+    # pages" baseline (docs/cluster-deployment-requirements.md, §4), adapted
+    # from klaushofrichter/christina.art and klaushofrichter/www-klaushofrichter.
     runs-on: ubuntu-latest
-    # The job takes about a minute. Without a limit, a stalled browser
-    # download in `playwright install` ran for GitHub's 6-hour default before
+    # A stalled browser download once ran for GitHub's 6-hour default before
     # it was cancelled (promotion #55), holding up the merge the whole time.
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
 
@@ -62,13 +63,53 @@ jobs:
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
+      - name: Build and start the image
+        run: |
+          set -euo pipefail
+          docker build --build-arg APP_VERSION=2099.01.01.1 -t www-skylar-technology:e2e .
+          docker run -d --name site -p 8080:8080 www-skylar-technology:e2e
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/health >/dev/null && break
+            echo "waiting for the image (${i}/30)"; sleep 1
+          done
+          curl -sf http://localhost:8080/health | grep -q '"version":"2099.01.01.1"' \
+            || { echo "::error::the image did not come up with the stamped version"; docker logs site; exit 1; }
 
-      - run: npm run build
+      # `--with-deps` runs `apt-get update`, which also reads the Google
+      # Chrome source the runner image ships; one bad index there fails the
+      # whole job (it did, 2026-09-09, in art), so drop that source. The Chrome
+      # binary itself stays: Lighthouse uses it below.
+      - name: Install the browsers
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
+                     /etc/apt/sources.list.d/google-chrome.sources
+          npx playwright install --with-deps chromium webkit firefox
 
-      # Playwright starts the built server, waits for /health and stops it
-      # (webServer in playwright.config.ts).
-      - run: npm run test:e2e
+      # failOnFlakyTests (playwright.config.ts) fails this step if any test
+      # passed only on its retry.
+      - name: Walk the site in four browsers
+        env:
+          BASE_URL: http://localhost:8080
+          EXPECT_VERSION: 2099.01.01.1
+        run: npx playwright test
+
+      - name: Lighthouse (Google PageSpeed) on a phone
+        run: scripts/lighthouse-gate.sh http://localhost:8080/
+
+      - name: Keep the reports when something failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-reports
+          path: |
+            playwright-report/
+            test-results/
+            lighthouse-report.report.html
+          retention-days: 14
+
+      - name: Server log when something failed
+        if: failure()
+        run: docker logs site || true
 
   codeql:
     runs-on: ubuntu-latest

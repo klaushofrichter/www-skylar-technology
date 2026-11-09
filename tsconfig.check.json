@@ -3,6 +3,9 @@
 // nothing: vitest and playwright both strip types without checking them, so a
 // broken @types/* upgrade would go green through CI. Discovered when
 // @types/supertest went 6 -> 7 and the build could not have noticed either way.
+// The e2e specs and the Playwright config are checked by e2e/tsconfig.json,
+// which adds the DOM types their in-page callbacks need without letting
+// server code use them.
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
@@ -11,5 +14,5 @@
     // here, so widen it or every test file trips TS6059.
     "rootDir": "."
   },
-  "include": ["src", "test", "e2e"]
+  "include": ["src", "test"]
 }

@@ -18,7 +18,7 @@ repo/CI/cluster deployment pattern), trimmed down to just a static page:
 
 1. **App scaffold** — copied `www-klaushofrichter`'s layout (Express +
    TypeScript, `tsc` build, Vitest/Supertest unit tests, Playwright
-   `e2e/smoke.spec.ts`, multi-stage `Dockerfile`), stripped of everything
+   `e2e/smoke.spec.ts` (now `e2e/site.spec.ts`), multi-stage `Dockerfile`), stripped of everything
    specific to that site (no images, no cron refresh, no `cheerio`).
    Verified locally: unit tests, `npm run dev`, and a full Docker
    build/run before anything was pushed anywhere.
