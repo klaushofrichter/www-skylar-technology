@@ -18,4 +18,8 @@ this file is where notes are written *before* a release, not an archive of them.
   phone, an iPhone), audited for WCAG 2.2 AA accessibility, and scored by
   Lighthouse on a phone before each release, and again on the live site after
   each release and daily. No visible change: the site already met it.
+- An address that does not exist now shows the site's own "Page not found"
+  page, in the site's dark style with the usual footer and a link back home,
+  instead of Express's bare "Cannot GET" text. It still answers 404, and is
+  marked not to be indexed. The only visible change in this release.
 

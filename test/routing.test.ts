@@ -17,6 +17,22 @@ describe('routing fall-through', () => {
     expect(response.text).not.toContain('Welcome to Skylar Technology LLC');
   });
 
+  it('answers an unknown path with the site\'s own 404 page and a way home', async () => {
+    const app = createApp();
+    const response = await request(app).get('/does-not-exist');
+
+    expect(response.status).toBe(404);
+    expect(response.headers['content-type']).toContain('text/html');
+    expect(response.text).toContain('<html lang="en">');
+    expect(response.text).toContain('<title>Page not found — Skylar Technology LLC</title>');
+    expect(response.text).toContain('<h1>Page not found</h1>');
+    expect(response.text).toContain('<a class="back-link" href="/">');
+    expect(response.text).toContain('<meta name="robots" content="noindex" />');
+    // A 404 is not a page to share or to name as canonical.
+    expect(response.text).not.toContain('rel="canonical"');
+    expect(response.text).not.toContain('og:url');
+  });
+
   it('404s a missing asset rather than falling through to the page', async () => {
     const app = createApp();
     const response = await request(app).get('/assets/does-not-exist.png');

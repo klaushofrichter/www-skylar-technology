@@ -139,6 +139,25 @@ test('@live footer links lead to the legal pages, and their back links lead home
   expect(problems).toEqual([]);
 });
 
+test('@live an unknown page is a 404 in the site\'s style, with a way home', async ({ page, isMobile }) => {
+  const problems = watchProblems(page);
+  const response = await page.goto('/does-not-exist');
+  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle('Page not found — Skylar Technology LLC');
+  expect(await page.locator('html').getAttribute('lang')).toBe('en');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Page not found');
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+  await expect(page.locator('footer a[href="/terms"]')).toBeVisible();
+  await press(page, isMobile, page.getByRole('link', { name: /Back to Skylar Technology LLC/ }));
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(HOME_H1);
+  // The 404 itself is expected: watchProblems skips its response, and
+  // Chromium also logs it to the console. Anything else is a real problem.
+  // At most that one line: a second would be a missing resource.
+  expect(problems.filter((p) => !/status of 404/.test(p))).toEqual([]);
+  expect(problems.length).toBeLessThanOrEqual(1);
+});
+
 test('@live Open Source Projects, built with AI shows three cards with GitHub and site links', async ({ page }) => {
   await page.goto('/');
   const section = page.locator('section.projects');

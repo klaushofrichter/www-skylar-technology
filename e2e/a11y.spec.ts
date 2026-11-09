@@ -1,6 +1,6 @@
 /**
  * Accessibility: WCAG 2.2 level A and AA, checked by axe-core in a real
- * browser, on every public page. Zero violations is the bar, plus the
+ * browser, on every public page and the 404 page. Zero violations is the bar, plus the
  * contrast passes in helpers.ts `audit()` that axe leaves undecided.
  *
  * The site has one design, dark, and no prefers-color-scheme rules, so it is
@@ -18,6 +18,13 @@ for (const path of ['/', '/terms', '/privacy']) {
     await audit(page);
   });
 }
+
+test('@live the 404 page meets WCAG 2.2 AA', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const response = await page.goto('/does-not-exist');
+  expect(response?.status()).toBe(404);
+  await audit(page);
+});
 
 test('@live every picture has a text alternative and every link a name', async ({ page }) => {
   for (const path of ['/', '/terms', '/privacy']) {

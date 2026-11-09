@@ -36,6 +36,8 @@ Klaus Hofrichter's personal homepage.
 - `GET /health` — returns `{"status": "ok", "service": "www-skylar-technology"}`
 - `/assets/*` — static asset serving; `assets/skylar-256x256.png` is used
   both as the page's favicon and the logo shown on the homepage.
+- Anything else — status 404 with the site's own "Page not found" page
+  (`src/views/notFound.ts`, `noindex`) and a link home.
 
 ## Development
 
@@ -59,8 +61,8 @@ in four browsers: desktop Chromium, an Android phone (Pixel 7), an iPhone
   followed (new pages are covered automatically), the footer and back links,
   the project links opening a new tab, keyboard order with a visible focus
   ring, no sideways scrolling on a phone, and no console errors.
-- `e2e/a11y.spec.ts` runs axe-core with the WCAG 2.2 AA tags on `/`, `/terms`
-  and `/privacy`, zero violations, plus a contrast pass axe skips on its own
+- `e2e/a11y.spec.ts` runs axe-core with the WCAG 2.2 AA tags on `/`, `/terms`,
+  `/privacy` and the 404 page, zero violations, plus a contrast pass axe skips on its own
   (`e2e/helpers.ts`, `audit()`: text over a gradient is checked against each
   colour stop, and any other undecided contrast fails).
 - `e2e/quality.spec.ts` checks layout shift (< 0.02), that the logo holds its

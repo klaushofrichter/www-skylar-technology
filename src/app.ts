@@ -1,9 +1,10 @@
 import compression from 'compression';
-import express, { Express } from 'express';
+import express, { Express, Request, Response } from 'express';
 import path from 'path';
 import { healthRouter } from './routes/health';
 import { indexRouter } from './routes/index';
 import { legalRouter } from './routes/legal';
+import { renderNotFound } from './views/notFound';
 
 /** One year, in milliseconds — the max-age for hashed/versioned static assets. */
 const ASSET_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
@@ -27,5 +28,10 @@ export function createApp(): Express {
   );
   app.use(legalRouter);
   app.use(indexRouter);
+  // Last: anything no route above answered (a missing asset included) gets
+  // the site's own 404 page rather than Express's bare "Cannot GET".
+  app.use((_req: Request, res: Response) => {
+    res.status(404).type('html').send(renderNotFound());
+  });
   return app;
 }
