@@ -13,6 +13,3 @@ this file is where notes are written *before* a release, not an archive of them.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
-
-### Fixed
-- On phones, the Engagement cards are only as tall as their text (they were 160px each, mostly empty).
