@@ -170,7 +170,8 @@ test('@live a project link opens its site in a new tab', async ({ page, context,
   for (const href of [first.repoUrl, first.siteUrl]) {
     const link = page.locator(`section.projects a[href="${href}"]`);
     const [popup] = await Promise.all([page.waitForEvent('popup'), press(page, isMobile, link)]);
-    await expect(popup).toHaveURL(new RegExp(`^${href.replace(/[.]/g, '\\.')}/?$`));
+    // A bare host gains a trailing slash in the address bar.
+    await expect.poll(() => popup.url().replace(/\/$/, '')).toBe(href);
     await popup.close();
   }
 });
