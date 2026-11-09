@@ -225,6 +225,9 @@ export function pageShell(title: string, bodyHtml: string, meta: PageMeta): stri
     @media (max-width: 560px) {
       .cards { grid-template-columns: 1fr; }
       .pills { flex-direction: column; }
+      /* In a column, the 160px flex-basis meant for width becomes each
+         pill's height, leaving empty space under one line of text. */
+      .pill { flex-basis: auto; }
     }
   </style>
 </head>

@@ -69,3 +69,17 @@ test('/health reports ok', async ({ request }) => {
   expect(body.service).toBe('www-skylar-technology');
   expect(typeof body.version).toBe('string');
 });
+
+test('on a phone, Engagement cards are only as tall as their text', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const pills = page.locator('.engagement .pill');
+  await expect(pills).toHaveCount(3);
+  // The stacked column once turned the 160px flex-basis into each card's
+  // height, leaving several empty lines under one line of text.
+  for (const pill of await pills.all()) {
+    const height = (await pill.boundingBox())?.height ?? 0;
+    expect(height).toBeGreaterThan(0);
+    expect(height).toBeLessThan(110);
+  }
+});
