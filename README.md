@@ -36,6 +36,8 @@ Klaus Hofrichter's personal homepage.
 - `GET /health` — returns `{"status": "ok", "service": "www-skylar-technology"}`
 - `/assets/*` — static asset serving; `assets/skylar-256x256.png` is used
   both as the page's favicon and the logo shown on the homepage.
+- Anything else — status 404 with the site's own "Page not found" page
+  (`src/views/notFound.ts`, `noindex`) and a link home.
 
 ## Development
 
@@ -48,15 +50,39 @@ npm run dev
 `npm run dev` starts the server on `http://localhost:8080` via `tsx`
 (no build step needed). `npm test` runs the Vitest/Supertest unit tests.
 
-## End-to-end smoke test
+## End-to-end tests (browsers, accessibility, speed)
 
-`e2e/smoke.spec.ts` (Playwright) checks the home page and `/health` in a
-real browser. `npm run build && npm run test:e2e` starts the built server,
-runs the suite and stops it again; set `BASE_URL` to test something already
-running instead (a dev server, a container). It runs in the `e2e` PR check,
-which `production` requires, so a browser-level regression is caught before
-the merge rather than after a deploy. The deploy's own smoke test is a
-`curl` check of `/health` and `/` against the live site.
+The Playwright suite in `e2e/` follows kube-setup's "public web pages"
+baseline (`docs/cluster-deployment-requirements.md`, §4). It runs every test
+in four browsers: desktop Chromium, an Android phone (Pixel 7), an iPhone
+(WebKit) and desktop Firefox.
+
+- `e2e/site.spec.ts` walks the site: every page, every same-site link
+  followed (new pages are covered automatically), the footer and back links,
+  the project links opening a new tab, keyboard order with a visible focus
+  ring, no sideways scrolling on a phone, and no console errors.
+- `e2e/a11y.spec.ts` runs axe-core with the WCAG 2.2 AA tags on `/`, `/terms`,
+  `/privacy` and the 404 page, zero violations, plus a contrast pass axe skips on its own
+  (`e2e/helpers.ts`, `audit()`: text over a gradient is checked against each
+  colour stop, and any other undecided contrast fails).
+- `e2e/quality.spec.ts` checks layout shift (< 0.02), that the logo holds its
+  box before it loads, the phone byte budget, and the pages without
+  JavaScript.
+
+`npm run build && npm run test:e2e` starts the built server, runs the suite
+and stops it again; set `BASE_URL` to test something already running instead.
+
+In CI (`e2e`, required by `production`) the suite runs against the Docker
+image the commit builds, then `scripts/lighthouse-gate.sh` runs Lighthouse on
+a phone profile three times: performance ≥ 90 on the median run;
+accessibility, best practices and SEO 100 in every run. A test that passes
+only on its retry fails the job (`failOnFlakyTests`).
+
+After every production deploy and once a day, `.github/workflows/live-check.yml`
+runs the read-only `@live` tests and the Lighthouse gate against
+https://www.skylar.technology and checks that `/health` and the footer name
+the newest release. It adds to the deploy's own `curl` smoke test of `/health`
+and `/`; it does not replace it.
 
 ## Deployment
 
