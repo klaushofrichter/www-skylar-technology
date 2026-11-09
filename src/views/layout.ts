@@ -5,6 +5,29 @@ export interface PageMeta {
   description: string;
   /** Site-relative path, e.g. "/" or "/terms", used to build the canonical/og:url. */
   path: string;
+  /** For the 404 page: no canonical URL and no Open Graph card, and search
+   *  engines are told not to index it. */
+  noindex?: boolean;
+}
+
+/** Canonical URL, Open Graph and Twitter card tags: every page but the 404. */
+function shareTags(title: string, description: string, url: string, imageUrl: string): string {
+  return `  <link rel="canonical" href="${url}" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Skylar Technology LLC" />
+  <meta property="og:title" content="${title}" />
+  <meta property="og:description" content="${description}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:image" content="${imageUrl}" />
+  <meta property="og:image:width" content="256" />
+  <meta property="og:image:height" content="256" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${description}" />
+  <meta name="twitter:image" content="${imageUrl}" />
+`;
 }
 
 export function pageShell(title: string, bodyHtml: string, meta: PageMeta): string {
@@ -18,23 +41,8 @@ export function pageShell(title: string, bodyHtml: string, meta: PageMeta): stri
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title}</title>
   <meta name="description" content="${meta.description}" />
-  <link rel="canonical" href="${url}" />
   <link rel="icon" type="image/png" href="/assets/skylar-256x256.png" />
-
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Skylar Technology LLC" />
-  <meta property="og:title" content="${title}" />
-  <meta property="og:description" content="${meta.description}" />
-  <meta property="og:url" content="${url}" />
-  <meta property="og:image" content="${imageUrl}" />
-  <meta property="og:image:width" content="256" />
-  <meta property="og:image:height" content="256" />
-
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="${title}" />
-  <meta name="twitter:description" content="${meta.description}" />
-  <meta name="twitter:image" content="${imageUrl}" />
-  <style>
+${meta.noindex ? '  <meta name="robots" content="noindex" />\n' : shareTags(title, meta.description, url, imageUrl)}  <style>
     :root {
       --bg: #0f172a;
       --bg-card: #17223a;
