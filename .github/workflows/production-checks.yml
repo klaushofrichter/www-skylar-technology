@@ -37,7 +37,7 @@ jobs:
       # Threshold is `high` rather than the default so that a moderate advisory
       # whose only fix is a major upgrade cannot wedge unrelated merges - the
       # alerts still surface those, they just do not stop the queue.
-      - run: npm audit --audit-level=high
+      - run: node scripts/npm-audit.mjs
 
   e2e:
     # The release gate, in a browser, on GitHub's runners: `npx playwright
